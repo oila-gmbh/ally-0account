@@ -1,207 +1,151 @@
-/*
-|--------------------------------------------------------------------------
-| Ally Oauth driver
-|--------------------------------------------------------------------------
-|
-| Make sure you through the code and comments properly and make necessary
-| changes as per the requirements of your implementation.
-|
-*/
-
-/**
-|--------------------------------------------------------------------------
- *  Search keyword "YourDriver" and replace it with a meaningful name
-|--------------------------------------------------------------------------
- */
+import { createHash, randomBytes } from 'node:crypto'
 
 import { Oauth2Driver } from '@adonisjs/ally'
 import type { HttpContext } from '@adonisjs/core/http'
-import type { AllyDriverContract, AllyUserContract, ApiRequestContract } from '@adonisjs/ally/types'
+import type {
+  AllyDriverContract,
+  AllyUserContract,
+  ApiRequestContract,
+  Oauth2AccessToken,
+  RedirectRequestContract,
+} from '@adonisjs/ally/types'
 
-/**
- *
- * Access token returned by your driver implementation. An access
- * token must have "token" and "type" properties and you may
- * define additional properties (if needed)
- */
-export type YourDriverAccessToken = {
-  token: string
-  type: 'bearer'
+export type ZeroAccountAccessToken = Oauth2AccessToken & {
+  id_token?: string
+  idToken?: string
 }
 
-/**
- * Scopes accepted by the driver implementation.
- */
-export type YourDriverScopes = string
+export type ZeroAccountScope = 'openid' | 'profile' | 'email' | 'offline_access' | (string & {})
 
-/**
- * The configuration accepted by the driver implementation.
- */
-export type YourDriverConfig = {
+export type ZeroAccountConfig = {
+  driver: 'zeroaccount'
   clientId: string
   clientSecret: string
   callbackUrl: string
+  scopes?: ZeroAccountScope[]
   authorizeUrl?: string
   accessTokenUrl?: string
   userInfoUrl?: string
 }
 
-/**
- * Driver implementation. It is mostly configuration driven except the API call
- * to get user info.
- */
-export class YourDriver
-  extends Oauth2Driver<YourDriverAccessToken, YourDriverScopes>
-  implements AllyDriverContract<YourDriverAccessToken, YourDriverScopes>
+export class ZeroAccountDriver
+  extends Oauth2Driver<ZeroAccountAccessToken, ZeroAccountScope>
+  implements AllyDriverContract<ZeroAccountAccessToken, ZeroAccountScope>
 {
-  /**
-   * The URL for the redirect request. The user will be redirected on this page
-   * to authorize the request.
-   *
-   * Do not define query strings in this URL.
-   */
-  protected authorizeUrl = ''
-
-  /**
-   * The URL to hit to exchange the authorization code for the access token
-   *
-   * Do not define query strings in this URL.
-   */
-  protected accessTokenUrl = ''
-
-  /**
-   * The URL to hit to get the user details
-   *
-   * Do not define query strings in this URL.
-   */
-  protected userInfoUrl = ''
-
-  /**
-   * The param name for the authorization code. Read the documentation of your oauth
-   * provider and update the param name to match the query string field name in
-   * which the oauth provider sends the authorization_code post redirect.
-   */
+  protected authorizeUrl = 'https://v1.0account.com/oauth/authorize'
+  protected accessTokenUrl = 'https://v1.0account.com/oauth/token'
+  protected userInfoUrl = 'https://v1.0account.com/oauth/userinfo'
   protected codeParamName = 'code'
-
-  /**
-   * The param name for the error. Read the documentation of your oauth provider and update
-   * the param name to match the query string field name in which the oauth provider sends
-   * the error post redirect
-   */
   protected errorParamName = 'error'
-
-  /**
-   * Cookie name for storing the CSRF token. Make sure it is always unique. So a better
-   * approach is to prefix the oauth provider name to `oauth_state` value. For example:
-   * For example: "facebook_oauth_state"
-   */
-  protected stateCookieName = 'YourDriver_oauth_state'
-
-  /**
-   * Parameter name to be used for sending and receiving the state from.
-   * Read the documentation of your oauth provider and update the param
-   * name to match the query string used by the provider for exchanging
-   * the state.
-   */
+  protected stateCookieName = 'zeroaccount_oauth_state'
   protected stateParamName = 'state'
-
-  /**
-   * Parameter name for sending the scopes to the oauth provider.
-   */
   protected scopeParamName = 'scope'
-
-  /**
-   * The separator indentifier for defining multiple scopes
-   */
   protected scopesSeparator = ' '
+  private codeVerifierCookieName = 'zeroaccount_code_verifier'
 
   constructor(
     ctx: HttpContext,
-    public config: YourDriverConfig
+    public config: ZeroAccountConfig
   ) {
     super(ctx, config)
-
-    /**
-     * Extremely important to call the following method to clear the
-     * state set by the redirect request.
-     *
-     * DO NOT REMOVE THE FOLLOWING LINE
-     */
     this.loadState()
   }
 
-  /**
-   * Optionally configure the authorization redirect request. The actual request
-   * is made by the base implementation of "Oauth2" driver and this is a
-   * hook to pre-configure the request.
-   */
-  // protected configureRedirectRequest(request: RedirectRequest<YourDriverScopes>) {}
-
-  /**
-   * Optionally configure the access token request. The actual request is made by
-   * the base implementation of "Oauth2" driver and this is a hook to pre-configure
-   * the request
-   */
-  // protected configureAccessTokenRequest(request: ApiRequest) {}
-
-  /**
-   * Update the implementation to tell if the error received during redirect
-   * means "ACCESS DENIED".
-   */
-  accessDenied() {
-    return this.ctx.request.input('error') === 'user_denied'
+  protected configureRedirectRequest(request: RedirectRequestContract<ZeroAccountScope>) {
+    request.param('response_type', 'code')
+    request.scopes(this.config.scopes || ['openid', 'profile', 'email'])
+    const verifier = randomBytes(32).toString('base64url')
+    this.ctx.response.encryptedCookie(this.codeVerifierCookieName, verifier, {
+      sameSite: false,
+      httpOnly: true,
+    })
+    request.param('code_challenge', createHash('sha256').update(verifier).digest('base64url'))
+    request.param('code_challenge_method', 'S256')
   }
 
-  /**
-   * Get the user details by query the provider API. This method must return
-   * the access token and the user details both. Checkout the google
-   * implementation for same.
-   *
-   * https://github.com/adonisjs/ally/blob/develop/src/Drivers/Google/index.ts#L191-L199
-   */
+  protected configureAccessTokenRequest(request: ApiRequestContract) {
+    const verifier = this.ctx.request.encryptedCookie(this.codeVerifierCookieName)
+    this.ctx.response.clearCookie(this.codeVerifierCookieName)
+    if (verifier) {
+      request.field('code_verifier', verifier)
+    }
+  }
+
+  accessDenied() {
+    const error = this.getError()
+    if (!error) {
+      return false
+    }
+    return error === 'access_denied' || error === 'login_required'
+  }
+
+  async accessToken(
+    callback?: (request: ApiRequestContract) => void
+  ): Promise<ZeroAccountAccessToken> {
+    const token = await super.accessToken(callback)
+    return { ...token, idToken: token.id_token }
+  }
+
   async user(
     callback?: (request: ApiRequestContract) => void
-  ): Promise<AllyUserContract<YourDriverAccessToken>> {
-    const accessToken = await this.accessToken()
-    const request = this.httpClient(this.config.userInfoUrl || this.userInfoUrl)
-
-    /**
-     * Allow end user to configure the request. This should be called after your custom
-     * configuration, so that the user can override them (if needed)
-     */
-    if (typeof callback === 'function') {
-      callback(request)
-    }
-
-    /**
-     * Write your implementation details here.
-     */
+  ): Promise<AllyUserContract<ZeroAccountAccessToken>> {
+    const token = await this.accessToken(callback)
+    const user = await this.getUserInfo(token.token, callback)
+    return { ...user, token }
   }
 
   async userFromToken(
     accessToken: string,
     callback?: (request: ApiRequestContract) => void
   ): Promise<AllyUserContract<{ token: string; type: 'bearer' }>> {
-    const request = this.httpClient(this.config.userInfoUrl || this.userInfoUrl)
+    const user = await this.getUserInfo(accessToken, callback)
+    return { ...user, token: { token: accessToken, type: 'bearer' } }
+  }
 
-    /**
-     * Allow end user to configure the request. This should be called after your custom
-     * configuration, so that the user can override them (if needed)
-     */
+  protected getAuthenticatedRequest(url: string, token: string) {
+    const request = this.httpClient(url)
+    request.header('Authorization', `Bearer ${token}`)
+    request.header('Accept', 'application/json')
+    request.parseAs('json')
+    return request
+  }
+
+  protected async getUserInfo(token: string, callback?: (request: ApiRequestContract) => void) {
+    const request = this.getAuthenticatedRequest(this.config.userInfoUrl || this.userInfoUrl, token)
     if (typeof callback === 'function') {
       callback(request)
     }
 
-    /**
-     * Write your implementation details here
-     */
+    const body = (await request.get()) as ZeroAccountUserInfo
+    const name = [body.given_name, body.family_name].filter(Boolean).join(' ')
+    return {
+      id: body.sub,
+      nickName: name,
+      name,
+      email: body.email || null,
+      emailVerificationState: body.email
+        ? body.email_verified
+          ? ('verified' as const)
+          : ('unverified' as const)
+        : ('unsupported' as const),
+      avatarUrl: body.picture || null,
+      original: body,
+    }
   }
 }
 
-/**
- * The factory function to reference the driver implementation
- * inside the "config/ally.ts" file.
- */
-export function YourDriverService(config: YourDriverConfig): (ctx: HttpContext) => YourDriver {
-  return (ctx) => new YourDriver(ctx, config)
+type ZeroAccountUserInfo = {
+  sub: string
+  given_name?: string
+  family_name?: string
+  email?: string
+  email_verified?: boolean
+  picture?: string
+  [key: string]: unknown
+}
+
+export function ZeroAccountService(
+  config: ZeroAccountConfig
+): (ctx: HttpContext) => ZeroAccountDriver {
+  return (ctx) => new ZeroAccountDriver(ctx, config)
 }
