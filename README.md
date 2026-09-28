@@ -1,8 +1,8 @@
 # ally-0account
 
-An [AdonisJS Ally](https://docs.adonisjs.com/guides/authentication/social-authentication) driver for [0account](https://0account.com) sign-in.
+An [AdonisJS Ally](https://docs.adonisjs.com/guides/authentication/social-authentication) driver for [0account](https://0account.com).
 
-0account is a standard OpenID Connect provider, and this driver speaks its authorization code flow with PKCE (S256) out of the box.
+0account supports standard OpenID Connect protocol, and this driver speaks its authorization code flow with PKCE (S256) out of the box.
 
 ## Install
 

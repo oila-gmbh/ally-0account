@@ -48,7 +48,8 @@
     "adonisjs",
     "oauth2",
     "openid-connect",
-    "zeroaccount"
+    "zeroaccount",
+    "0account"
   ],
   "eslintConfig": {
     "extends": "@adonisjs/eslint-config/package"
