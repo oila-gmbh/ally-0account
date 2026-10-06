@@ -1,4 +1,4 @@
-# ally-0account
+# @oila-gmbh/ally-0account
 
 An [AdonisJS Ally](https://docs.adonisjs.com/guides/authentication/social-authentication) driver for [0account](https://0account.com).
 
@@ -6,9 +6,13 @@ An [AdonisJS Ally](https://docs.adonisjs.com/guides/authentication/social-authen
 
 ## Install
 
+The package is distributed straight from GitHub — it is not published to the public npm registry:
+
 ```sh
-npm i ally-0account
+npm i @oila-gmbh/ally-0account@github:oila-gmbh/ally-0account
 ```
+
+It requires AdonisJS v7 with `@adonisjs/ally@^6`. This installs the latest commit on the default branch; to pin a known-good state, append `#<commit-sha>` to the specifier.
 
 ## Usage
 
@@ -17,7 +21,7 @@ Register the driver in `config/ally.ts`:
 ```ts
 import env from '#start/env'
 import { defineConfig } from '@adonisjs/ally/types'
-import { ZeroAccountService } from 'ally-0account'
+import { ZeroAccountService } from '@oila-gmbh/ally-0account'
 
 const allyConfig = defineConfig({
   zeroaccount: ZeroAccountService({
