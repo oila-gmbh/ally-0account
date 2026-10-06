@@ -1,5 +1,3 @@
-import { createHash, randomBytes } from 'node:crypto'
-
 import { Oauth2Driver } from '@adonisjs/ally'
 import type { HttpContext } from '@adonisjs/core/http'
 import type {
@@ -41,7 +39,7 @@ export class ZeroAccountDriver
   protected stateParamName = 'state'
   protected scopeParamName = 'scope'
   protected scopesSeparator = ' '
-  private codeVerifierCookieName = 'zeroaccount_code_verifier'
+  protected codeVerifierCookieName = 'zeroaccount_code_verifier'
 
   constructor(
     ctx: HttpContext,
@@ -54,21 +52,6 @@ export class ZeroAccountDriver
   protected configureRedirectRequest(request: RedirectRequestContract<ZeroAccountScope>) {
     request.param('response_type', 'code')
     request.scopes(this.config.scopes || ['openid', 'profile', 'email'])
-    const verifier = randomBytes(32).toString('base64url')
-    this.ctx.response.encryptedCookie(this.codeVerifierCookieName, verifier, {
-      sameSite: false,
-      httpOnly: true,
-    })
-    request.param('code_challenge', createHash('sha256').update(verifier).digest('base64url'))
-    request.param('code_challenge_method', 'S256')
-  }
-
-  protected configureAccessTokenRequest(request: ApiRequestContract) {
-    const verifier = this.ctx.request.encryptedCookie(this.codeVerifierCookieName)
-    this.ctx.response.clearCookie(this.codeVerifierCookieName)
-    if (verifier) {
-      request.field('code_verifier', verifier)
-    }
   }
 
   accessDenied() {

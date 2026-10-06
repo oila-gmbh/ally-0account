@@ -1,7 +1,7 @@
 {
-  "name": "ally-0account",
+  "name": "@oila-gmbh/ally-0account",
   "description": "AdonisJS Ally driver for 0account sign-in",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
   "exports": {
@@ -16,6 +16,10 @@
     "build/index.d.ts",
     "build/src"
   ],
+  "repository": "https://github.com/oila-gmbh/ally-0account.git",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "lint": "eslint . --ext=.ts",
     "format": "prettier --write .",
@@ -25,8 +29,8 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "@adonisjs/ally": "^5.0.0-7",
-    "@adonisjs/core": "^6.1.5-32",
+    "@adonisjs/ally": "^6.3.1",
+    "@adonisjs/core": "^7.6.0",
     "@adonisjs/eslint-config": "^1.3.0",
     "@adonisjs/prettier-config": "^1.3.0",
     "@adonisjs/tsconfig": "^1.3.0",
@@ -37,8 +41,8 @@
     "typescript": "^5.4.5"
   },
   "peerDependencies": {
-    "@adonisjs/ally": "^5.0.0-7",
-    "@adonisjs/core": "^6.1.5-32"
+    "@adonisjs/ally": "^6.0.0",
+    "@adonisjs/core": "^7.0.0"
   },
   "author": "oila-gmbh",
   "license": "MIT",

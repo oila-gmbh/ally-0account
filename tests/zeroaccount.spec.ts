@@ -71,7 +71,7 @@ test.group('ZeroAccountDriver | redirect', () => {
     assert.equal(location.searchParams.get('scope'), 'openid profile email')
     assert.equal(location.searchParams.get('code_challenge_method'), 'S256')
     assert.match(location.searchParams.get('code_challenge')!, /^[A-Za-z0-9_-]{43}$/)
-    assert.match(cookies.zeroaccount_code_verifier, /^[A-Za-z0-9_-]{43}$/)
+    assert.match(cookies.zeroaccount_code_verifier, /^[A-Za-z0-9_-]{64}$/)
     assert.equal(cookies.zeroaccount_oauth_state, location.searchParams.get('state'))
   })
 
