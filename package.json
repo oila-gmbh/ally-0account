@@ -26,7 +26,8 @@
     "typecheck": "tsc --noEmit",
     "pretest": "npm run lint",
     "test": "node --enable-source-maps --loader ts-node/esm bin/test.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@adonisjs/ally": "^6.3.1",
