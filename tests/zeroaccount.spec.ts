@@ -9,7 +9,6 @@ import { test } from '@japa/runner'
 import { ZeroAccountDriver, type ZeroAccountConfig } from '../src/driver.js'
 
 const driverConfig = {
-  driver: 'zeroaccount',
   clientId: 'client-id',
   clientSecret: 'client-secret',
   callbackUrl: 'http://localhost:3333/callback',

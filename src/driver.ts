@@ -5,6 +5,7 @@ import type {
   AllyUserContract,
   ApiRequestContract,
   Oauth2AccessToken,
+  Oauth2DriverConfig,
   RedirectRequestContract,
 } from '@adonisjs/ally/types'
 
@@ -15,14 +16,8 @@ export type ZeroAccountAccessToken = Oauth2AccessToken & {
 
 export type ZeroAccountScope = 'openid' | 'profile' | 'email' | 'offline_access' | (string & {})
 
-export type ZeroAccountConfig = {
-  driver: 'zeroaccount'
-  clientId: string
-  clientSecret: string
-  callbackUrl: string
+export type ZeroAccountConfig = Oauth2DriverConfig & {
   scopes?: ZeroAccountScope[]
-  authorizeUrl?: string
-  accessTokenUrl?: string
   userInfoUrl?: string
 }
 

@@ -20,7 +20,8 @@ Register the driver in `config/ally.ts`:
 
 ```ts
 import env from '#start/env'
-import { defineConfig } from '@adonisjs/ally/types'
+import { defineConfig } from '@adonisjs/ally'
+import type { InferSocialProviders } from '@adonisjs/ally/types'
 import { ZeroAccountService } from '@oila-gmbh/ally-0account'
 
 const allyConfig = defineConfig({
@@ -32,25 +33,43 @@ const allyConfig = defineConfig({
 })
 
 export default allyConfig
+
+declare module '@adonisjs/ally/types' {
+  interface SocialProviders extends InferSocialProviders<typeof allyConfig> {}
+}
 ```
 
 Then use it from a controller as with any Ally driver:
 
 ```ts
-const ally = this.ally.use('zeroaccount')
+router.get('/ally/zeroaccount/redirect', ({ ally }) => {
+  return ally.use('zeroaccount').redirect()
+})
 
-if (ally.accessDenied()) {
-  return 'The sign-in attempt expired or was declined. Please try again.'
-}
+router.get('/ally/zeroaccount/callback', async ({ ally }) => {
+  const zeroaccount = ally.use('zeroaccount')
 
-const user = await ally.user()
+  if (zeroaccount.accessDenied()) {
+    return 'The sign-in attempt expired or was declined. Please try again.'
+  }
+
+  if (zeroaccount.stateMisMatch()) {
+    return 'Request expired. Please try again.'
+  }
+
+  if (zeroaccount.hasError()) {
+    return zeroaccount.getError()
+  }
+
+  const user = await zeroaccount.user()
+  return user
+})
 ```
 
 ## Configuration
 
 | Option | Required | Description |
 |---|---|---|
-| `driver` | yes | Must be `'zeroaccount'`. |
 | `clientId` | yes | The app id from [my.0account.com/apps](https://my.0account.com/apps). |
 | `clientSecret` | yes | The app secret (`0account_sec_…`), sent exactly as issued. |
 | `callbackUrl` | yes | Must be registered as a redirect URI for the app. |
